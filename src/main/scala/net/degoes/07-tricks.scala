@@ -14,6 +14,7 @@ import org.openjdk.jmh.annotations._
 import org.openjdk.jmh.infra.Blackhole
 import java.util.concurrent.TimeUnit
 import scala.util.control.NoStackTrace
+import scala.annotation.switch
 
 /**
  * EXERCISE 1
@@ -569,15 +570,15 @@ class NoExceptionsBenchmark {
 }
 
 /**
-  * EXERCISE 11
-  * 
-  * Hash maps can offer quite high performance (O(1)), but never as high performance as array 
-  * lookups (lower constant factor). To accelerate some code, you can switch from using non-integer
-  * sparse keys to using dense integer keys, which lets you replace the map with an array.
-  *
-  * In this exercise, create an equivalent implementation to the provided one that uses arrays
-  * instead of maps and observe the effects on performance.
-  */
+ * EXERCISE 11
+ *
+ * Hash maps can offer quite high performance (O(1)), but never as high performance as array lookups
+ * (lower constant factor). To accelerate some code, you can switch from using non-integer sparse
+ * keys to using dense integer keys, which lets you replace the map with an array.
+ *
+ * In this exercise, create an equivalent implementation to the provided one that uses arrays
+ * instead of maps and observe the effects on performance.
+ */
 @State(Scope.Thread)
 @OutputTimeUnit(TimeUnit.SECONDS)
 @BenchmarkMode(Array(Mode.Throughput))
@@ -586,30 +587,30 @@ class NoExceptionsBenchmark {
 @Fork(value = 1, jvmArgsAppend = Array())
 @Threads(16)
 class MapToArrayBenchmark {
-  import zio.Chunk 
+  import zio.Chunk
 
   @Param(Array("10000", "100000"))
-  var size: Int = _ 
+  var size: Int = _
 
   val rng = new scala.util.Random(0L)
 
-  var allData: Chunk[Data] = _ 
-  val transformation = 
+  var allData: Chunk[Data] = _
+  val transformation       =
     Transformation(
       Map(
-        Component.Email -> Operation.Identity,
-        Component.Name -> Operation.Identity,
-        Component.Phone -> Operation.Identity,
-        Component.Age -> Operation.Identity,
-        Component.Zip -> Operation.Identity,
-        Component.City -> Operation.Identity,
-        Component.State -> Operation.Identity,
+        Component.Email   -> Operation.Identity,
+        Component.Name    -> Operation.Identity,
+        Component.Phone   -> Operation.Identity,
+        Component.Age     -> Operation.Identity,
+        Component.Zip     -> Operation.Identity,
+        Component.City    -> Operation.Identity,
+        Component.State   -> Operation.Identity,
         Component.Country -> Operation.Identity
       )
     )
 
-  @Setup 
-  def setup(): Unit = {
+  @Setup
+  def setup(): Unit =
     allData = Chunk.fill(size) {
       Data(
         email = rng.nextString(10),
@@ -622,7 +623,6 @@ class MapToArrayBenchmark {
         country = rng.nextString(10)
       )
     }
-  }
 
   @Benchmark
   def map(blackhole: Blackhole): Unit = {
@@ -634,29 +634,28 @@ class MapToArrayBenchmark {
     }
   }
 
-  def transformData(data: Data, transformation: Transformation): Unit = {
+  def transformData(data: Data, transformation: Transformation): Unit =
     transformation.map.foreach { case (component, operation) =>
       component match {
-        case Component.Email => 
+        case Component.Email   =>
           data.email = operation(data.email)
-        case Component.Name =>
+        case Component.Name    =>
           data.name = operation(data.name)
-        case Component.Phone =>
+        case Component.Phone   =>
           data.phone = operation(data.phone)
-        case Component.Age =>
+        case Component.Age     =>
           data.age = operation(data.age)
-        case Component.Zip =>
+        case Component.Zip     =>
           data.zip = operation(data.zip)
-        case Component.City =>
+        case Component.City    =>
           data.city = operation(data.city)
-        case Component.State =>
+        case Component.State   =>
           data.state = operation(data.state)
         case Component.Country =>
           data.country = operation(data.country)
-        case _ => () 
+        case _                 => ()
       }
     }
-  }
   case class Data(
     var email: String,
     var name: String,
@@ -681,40 +680,39 @@ class MapToArrayBenchmark {
       Component.Country
     )
 
-    val Email = Component("email")
-    val Name  = Component("name")
-    val Phone = Component("phone")
-    val Age   = Component("age")
-    val Zip   = Component("zip")
-    val City  = Component("city")
-    val State = Component("state")
+    val Email   = Component("email")
+    val Name    = Component("name")
+    val Phone   = Component("phone")
+    val Age     = Component("age")
+    val Zip     = Component("zip")
+    val City    = Component("city")
+    val State   = Component("state")
     val Country = Component("country")
   }
   sealed trait Operation {
-    def apply(value: String): String = 
+    def apply(value: String): String =
       this match {
-        case Operation.Identity => 
-          value 
-        case Operation.Anonymize(full) => 
+        case Operation.Identity               =>
+          value
+        case Operation.Anonymize(full)        =>
           if (full) "*****"
           else value.take(3) + "*****"
-        case Operation.Encrypt(key) => 
+        case Operation.Encrypt(key)           =>
           value.map(c => (c ^ key.hashCode).toChar)
-        case Operation.Uppercase => 
+        case Operation.Uppercase              =>
           value.toUpperCase
-        case Operation.Composite(left, right) => 
+        case Operation.Composite(left, right) =>
           right(left(value))
       }
   }
   object Operation {
-    case object Identity extends Operation
-    case class Anonymize(full: Boolean) extends Operation 
-    case class Encrypt(key: String) extends Operation 
-    case object Uppercase extends Operation
+    case object Identity                                    extends Operation
+    case class Anonymize(full: Boolean)                     extends Operation
+    case class Encrypt(key: String)                         extends Operation
+    case object Uppercase                                   extends Operation
     case class Composite(left: Operation, right: Operation) extends Operation
   }
 }
-
 
 /**
  * GRADUATION PROJECT
@@ -728,12 +726,12 @@ class MapToArrayBenchmark {
  * of the process.
  */
 @State(Scope.Thread)
-@OutputTimeUnit(TimeUnit.SECONDS)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
 @BenchmarkMode(Array(Mode.Throughput))
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(value = 1, jvmArgsAppend = Array("-XX:-DoEscapeAnalysis"))
-@Threads(16)
+@Threads(1)
 class StackInterpreterBenchmark {
   import RouteParser._
 
@@ -741,12 +739,30 @@ class StackInterpreterBenchmark {
   val parser: RouteParser[(String, Int)] =
     Slash *> Literal("users") *> Slash *> StringVar <* Slash <* Literal("posts") <* Slash <*> IntVar
 
+  // Parses: /users/{username}/posts/{post-id}
+  val optimizedParser: Optimized.CompiledRouteParser[(String, Int)] = {
+    import Optimized.RouteParser._
+    (Slash *> Literal("users") *> Slash *> StringVar <* Slash <* Literal("posts") <* Slash <*>
+      IntVar).compile
+  }
+
+  val test: Unit = {
+    println(parser.parse("/users/jdegoes/posts/123"))
+    println(optimizedParser.parse("/users/jdegoes/posts/123"))
+    println(Hardcoded.parse("/users/jdegoes/posts/123"))
+  }
+
   @Benchmark
   def classic(blackhole: Blackhole): Unit =
     blackhole.consume(parser.parse("/users/jdegoes/posts/123"))
 
   @Benchmark
-  def interpreted(blackhole: Blackhole): Unit = ()
+  def interpreted(blackhole: Blackhole): Unit =
+    blackhole.consume(optimizedParser.parse("/users/jdegoes/posts/123"))
+
+  @Benchmark
+  def hardcoded(blackhole: Blackhole): Unit =
+    blackhole.consume(Hardcoded.parse("/users/jdegoes/posts/123"))
 
   sealed trait RouteParser[+A] {
     def parse(path: String): Option[(A, String)]
@@ -820,6 +836,237 @@ class StackInterpreterBenchmark {
         left.parse(path).flatMap { case (a, path) =>
           right.parse(path).map { case (b, path) => (f(a, b), path) }
         }
+    }
+  }
+
+  object Optimized {
+    sealed trait RouteParser[+A] {
+      def compile: CompiledRouteParser[A] =
+        CompiledRouteParser(compileImpl(this))
+
+      def <*[B](that: RouteParser[B]): RouteParser[A] =
+        this.zipLeft(that)
+
+      def *>[B](that: RouteParser[B]): RouteParser[B] =
+        this.zipRight(that)
+
+      def <*>[B](that: RouteParser[B]): RouteParser[(A, B)] =
+        this.zip(that)
+
+      def zip[B](that: RouteParser[B]): RouteParser[(A, B)] =
+        RouteParser.Zip(this, that)
+
+      def zipLeft[B](that: RouteParser[B]): RouteParser[A] =
+        RouteParser.ZipLeft(this, that)
+
+      def zipRight[B](that: RouteParser[B]): RouteParser[B] =
+        RouteParser.ZipRight(this, that)
+    }
+    object RouteParser           {
+      case class Literal(value: String)                                      extends RouteParser[Unit]
+      case object Slash                                                      extends RouteParser[Unit]
+      case object StringVar                                                  extends RouteParser[String]
+      case object IntVar                                                     extends RouteParser[Int]
+      case class Zip[A, B](left: RouteParser[A], right: RouteParser[B])      extends RouteParser[(A, B)]
+      case class ZipLeft[A, B](left: RouteParser[A], right: RouteParser[B])  extends RouteParser[A]
+      case class ZipRight[A, B](left: RouteParser[A], right: RouteParser[B]) extends RouteParser[B]
+    }
+
+    private def compileImpl[A](parser: RouteParser[A]): Array[Instruction] =
+      parser match {
+        case RouteParser.Literal(value)        => Array(Instruction.Literal(value))
+        case RouteParser.Slash                 => Array(Instruction.Literal("/"))
+        case RouteParser.StringVar             => Array(Instruction.StringVar)
+        case RouteParser.IntVar                => Array(Instruction.IntVar)
+        case RouteParser.Zip(left, right)      =>
+          compileImpl(left) ++ compileImpl(right) :+ Instruction.Zip
+        case RouteParser.ZipLeft(left, right)  =>
+          compileImpl(left) ++ compileImpl(right) :+ Instruction.ZipLeft
+        case RouteParser.ZipRight(left, right) =>
+          compileImpl(left) ++ compileImpl(right) :+ Instruction.ZipRight
+      }
+
+    sealed trait Instruction
+    object Instruction {
+      case class Literal(value: String) extends Instruction
+      case object StringVar             extends Instruction
+      case object IntVar                extends Instruction
+      case object Zip                   extends Instruction
+      case object ZipLeft               extends Instruction
+      case object ZipRight              extends Instruction
+    }
+
+    private class Stack(maxSize: Int) {
+      private val array: Array[Any] = Array.ofDim(maxSize)
+      private var size: Int         = 0
+
+      def push(elem: Any): Unit = {
+        array(size) = elem
+        size += 1
+      }
+
+      def pop(): Any = {
+        size -= 1
+        array(size)
+      }
+
+      def top: Any =
+        array(size - 1)
+    }
+
+    private object ParseFailed extends Throwable with NoStackTrace
+
+    case class CompiledRouteParser[+A](private val instructions: Array[Instruction]) {
+      private val instructionTags = instructions.map {
+        case Instruction.Literal(_) => 0
+        case Instruction.StringVar  => 1
+        case Instruction.IntVar     => 2
+        case Instruction.Zip        => 3
+        case Instruction.ZipLeft    => 4
+        case Instruction.ZipRight   => 5
+      }
+
+      def parse(path: String): Option[(A, String)] = {
+        var i                  = 0
+        var remainingPathStart = 0
+        val stack              = new Stack(instructions.length)
+        try
+          while (i < instructions.length) {
+            (instructionTags(i): @switch) match {
+              case 0 =>
+                val value = instructions(i).asInstanceOf[Instruction.Literal].value
+                if (path.regionMatches(remainingPathStart, value, 0, value.length)) {
+                  stack.push(())
+                  remainingPathStart += value.length
+                } else {
+                  throw ParseFailed
+                }
+              case 1 =>
+                val idx = path.indexOf('/', remainingPathStart)
+                if (idx == -1) {
+                  stack.push(path.substring(remainingPathStart))
+                  remainingPathStart = path.length
+                } else {
+                  stack.push(path.substring(remainingPathStart, idx))
+                  remainingPathStart = idx
+                }
+              case 2 =>
+                val idx = path.indexOf('/', remainingPathStart)
+                if (idx == -1) {
+                  path.substring(remainingPathStart).toIntOption match {
+                    case Some(int) =>
+                      stack.push(int)
+                      remainingPathStart = path.length
+                    case None      =>
+                      throw ParseFailed
+                  }
+                } else {
+                  val seg = path.substring(remainingPathStart, idx)
+
+                  seg.toIntOption match {
+                    case Some(int) =>
+                      stack.push(int)
+                      remainingPathStart = idx
+                    case None      =>
+                      throw ParseFailed
+                  }
+                }
+              case 3 =>
+                val right = stack.pop()
+                val left  = stack.pop()
+                stack.push((left, right))
+              case 4 =>
+                stack.pop()
+              case 5 =>
+                val right = stack.pop()
+                stack.pop()
+                stack.push(right)
+            }
+            i += 1
+          }
+        catch {
+          case ParseFailed => return None
+        }
+        Some((stack.top.asInstanceOf[A], path.substring(remainingPathStart)))
+      }
+    }
+  }
+
+  object Hardcoded {
+    def parse(path: String): Option[((String, Int), String)] = {
+      var remainingPath = path
+
+      val literal1 = "/"
+      if (remainingPath.startsWith(literal1))
+        remainingPath = remainingPath.substring(literal1.length)
+      else
+        return None
+
+      val literal2 = "users"
+      if (remainingPath.startsWith(literal2))
+        remainingPath = remainingPath.substring(literal2.length)
+      else
+        return None
+
+      val literal3 = "/"
+      if (remainingPath.startsWith(literal3))
+        remainingPath = remainingPath.substring(literal3.length)
+      else
+        return None
+
+      val stringVar = {
+        val idx = remainingPath.indexOf('/')
+        if (idx == -1) {
+          val stringVar = remainingPath
+          remainingPath = ""
+          stringVar
+        } else {
+          val stringVar = remainingPath.substring(0, idx)
+          remainingPath = remainingPath.substring(idx)
+          stringVar
+        }
+      }
+
+      val literal4 = "/"
+      if (remainingPath.startsWith(literal4))
+        remainingPath = remainingPath.substring(literal4.length)
+      else
+        return None
+
+      val literal5 = "posts"
+      if (remainingPath.startsWith(literal5))
+        remainingPath = remainingPath.substring(literal5.length)
+      else
+        return None
+
+      val literal6 = "/"
+      if (remainingPath.startsWith(literal6))
+        remainingPath = remainingPath.substring(literal6.length)
+      else
+        return None
+
+      val intVar = {
+        val idx = remainingPath.indexOf('/')
+        if (idx == -1) {
+          remainingPath.toIntOption match {
+            case Some(int) =>
+              remainingPath = ""
+              int
+            case None      => return None
+          }
+        } else {
+          val seg = remainingPath.substring(0, idx)
+
+          seg.toIntOption match {
+            case Some(int) =>
+              remainingPath = remainingPath.substring(idx)
+              int
+            case None      => return None
+          }
+        }
+      }
+
+      Some(((stringVar, intVar), remainingPath))
     }
   }
 }
